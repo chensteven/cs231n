@@ -183,6 +183,9 @@ class FullyConnectedNet(object):
     for n in xrange(0, self.num_layers):
         self.params['W%d' % (n+1)] = np.random.rand(dims[n], dims[n+1]) * weight_scale
         self.params['b%d' % (n+1)] = np.zeros(dims[n+1])
+        if self.use_batchnorm and n != self.num_layers-1:
+            self.params['beta%d' % (n+1)] = np.zeros(dims[n+1])
+            self.params['gamma%d' % (n+1)] = np.ones(dims[n+1])
 
     ############################################################################
     #                             END OF YOUR CODE                             #
@@ -244,13 +247,15 @@ class FullyConnectedNet(object):
 
     layer = {}
     layer[0] = X
-    cache_layer = {}
+    self.cache_layer = {}
+    self.batchnorm_cache_layer = {}
+    self.dropout_cache_layer = {}
 
     for n in xrange(1, self.num_layers):
-        layer[n], cache_layer[n] = affine_relu_forward(layer[n-1], self.params['W%d' % (n)], self.params['b%d' % (n)])
-    x1, cache1 = affine_relu_forward(X, self.params['W1'], self.params['b1'])
-    x2, cache2 = affine_relu_forward(x1, self.params['W2'], self.params['b2'])
-
+        if self.use_batchnorm:
+            layer[n], self.batchnorm_cache_layer['batchnorm%d' % (n)] = batchnorm_forward(layer[n-1], self.params['gamma%d' % (n)], self.params['beta%d' % (n)], self.bn_params[n-1])
+        layer[n], self.cache_layer[n] = affine_relu_forward(layer[n-1], self.params['W%d' % (n)], self.params['b%d' % (n)])
+    
     last_weight_lay = 'W%d' % (self.num_layers)
     last_bias_lay = 'b%d' % (self.num_layers)
     scores, cache_scores = affine_forward(layer[self.num_layers-1], self.params[last_weight_lay], self.params[last_bias_lay])
@@ -285,9 +290,9 @@ class FullyConnectedNet(object):
     dx[self.num_layers], grads[last_weight_lay], grads[last_bias_lay] = affine_backward(dscores, cache_scores)
     grads[last_weight_lay] += self.reg * self.params[last_weight_lay]
 
-    for n in reversed(xrange(1, self.num_layers)):
-        dx[n], grads['W%d' % (n)], grads['b%d' % (n)] = affine_relu_backward(dx[n+1], cache_layer[n])
-        grads['W%d' % (n)] += self.reg * self.params['W%d' % (n)]
+    # for n in reversed(xrange(1, self.num_layers)):
+    #     dx[n], grads['W%d' % (n)], grads['b%d' % (n)] = affine_relu_backward(dx[n+1], self.cache_layer[n])
+    #     grads['W%d' % (n)] += self.reg * self.params['W%d' % (n)]
     ############################################################################
     #                             END OF YOUR CODE                             #
     ############################################################################

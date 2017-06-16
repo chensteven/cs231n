@@ -25,9 +25,7 @@ def svm_loss_naive(W, X, y, reg):
   num_classes = W.shape[1]
   num_train = X.shape[0]
   loss = 0.0
-  #print W.shape
-  print dW[:, 3].shape
-  print X[3, :].T.shape
+  delta = 1 # set the delta as 1 but you can change it
   for i in xrange(num_train):
     scores = X[i].dot(W)
 
@@ -35,7 +33,7 @@ def svm_loss_naive(W, X, y, reg):
     for j in xrange(num_classes):
       if j == y[i]:
         continue
-      margin = scores[j] - correct_class_score + 1 # note delta = 1
+      margin = scores[j] - correct_class_score + delta
 
       if margin > 0:
         loss += margin
